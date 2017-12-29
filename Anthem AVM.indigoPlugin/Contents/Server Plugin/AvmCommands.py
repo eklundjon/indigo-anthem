@@ -2,35 +2,45 @@
 
 main = {
 	"Power" : { "command" : "P1P",
+				"response" : "P1P([01])"
 				"values" : { "Off" : "0",
 							 "On" : "1"} },
 	"Source" : { "command" : "P1S" },
+				"response" : "P1S([0-9c-j])"
 				#values are special for this one
 	#TODO: figure out simulcast
 	"RecSource" : { "command" : "P4S" },
+				"response" : "P4S([0-9c-j])"
 				#values are special for this one
 	#TODO: figure out simulcast
 	"Mute" : { "command" : "P1M",
+				"response" : "P1M([01])"
 				"values" : {"Off" : "0",
 							"On" : "1",
 							"Toggle" : "T"} },
 	"HeadphoneMute" : { "command" : "HM",
+				"response" : "HM([01])"
 				"values" : {"Off" : "0",
 							"On" : "1",
 							"Toggle" : "T"} },
 	"MasterVolume" : { "command" : "P1VM",
+				"response" : "P1V([+-]\d\d.\d)"
 			"min" : -95.5,
 			"max" : 31.5},
 	"HeadphoneVolume" : { "command" : "HV",
+				"response" : "HV([+-]\d\d.\d)"
 			"min" : -62.5,
 			"max" : 10},
 	"MaxVolume" : { "command" : "SV1M",
+				"response" : "([])"
 			"min" : -95.5,
 			"max" : 31.5},
 	"MasterVolumeUp" : { "command" : "P1VMU",
+				"response" : "([])"
 			"min" : 0.5,
 			"max" : 5},
 	"MasterVolumeDown" : { "command" : "P1VMD",
+				"response" : "([])"
 			"min" : 0.5,
 			"max" : 5},
 	"VolumeFront" : { "command" : "P1VF",

@@ -14,7 +14,7 @@ class Plugin(indigo.PluginBase):
 	# Begin Indigo plugin API functions #
 	#####################################
 	def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
-		indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
+		super(Plugin, self).__init__(pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 		self.debug = pluginPrefs.get("DebugFlag", False)
 		
 		self.serialLocks = {}   #do we still need these?
@@ -42,18 +42,6 @@ class Plugin(indigo.PluginBase):
 	def shutdown(self):
 		self.logger.debug(u"shutdown called")
 		
-	########################################
-	def closedPrefsConfigUi(self, valuesDict, userCancelled):
-		self.logger.debug(u"closedPrefsConfigUi enter")
-		if userCancelled:
-			return
-
-		self.debug = valuesDict.get("DebugFlag", False)
-		if self.debug:
-			self.logger.info("Debug logging enabled")
-		else:
-			self.logger.info("Debug logging disabled")
-
 	########################################
 	def commThread(self, dev):
 		self.logger.info("comm thread starting")
@@ -113,45 +101,167 @@ class Plugin(indigo.PluginBase):
 #  File "plugin.py", line 93, in deviceStopComm
 #KeyError: (1433517507,)
 
+	########################################
+	def getDeviceFactoryUiValues(self, devIdList):
+		self.logger.info("getDeviceFactoryUiValues() enter")
+		valuesDict = indigo.Dict()
+		errorMsgDict = indigo.Dict()
+		mainFound = False
+
+		for devId in devIdList:
+			dev = indigo.devices[devId]
+			self.logger.debug("devIdList includes "+dev.deviceTypeId)
+			if dev.deviceTypeId == "main":
+				mainFound = True
+				# TODO check for open serial handle
+				valuesDict["devicePortFieldId_serialConnType"] = dev.pluginProps.get("devicePortFieldId_serialConnType", "")
+				valuesDict["devicePortFieldId_serialPortLocal"] = dev.pluginProps.get("devicePortFieldId_serialPortLocal", "")
+				valuesDict["devicePortFieldId_serialPortNetRfc2217"] = dev.pluginProps.get("devicePortFieldId_serialPortNetRfc2217", "")
+				valuesDict["devicePortFieldId_serialPortNetSocket"] = dev.pluginProps.get("devicePortFieldId_serialPortNetSocket", "")
+			elif dev.deviceTypeId == "tuner":
+				valuesDict["enableTuner"] = True
+			elif dev.deviceTypeId == "zone2":
+				valuesDict["enableZone2"] = True
+			elif dev.deviceTypeId == "zone3":
+				valuesDict["enableZone3"] = True
+
+		if not mainFound:
+			self.logger.debug("Creating main device")
+			mainDev = indigo.device.create(indigo.kProtocol.Plugin, deviceTypeId="main")
+			mainDev.model = "Anthem AVM Processor"
+			mainDev.subModel = "Main"
+			mainDev.replaceOnServer()
+
+
+		return (valuesDict, errorMsgDict)
 
 	########################################
-	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
-		self.logger.debug(u"validateDeviceConfigUi enter")
+	def updateAddress(self, dev, address):
+		localPropsCopy = dev.pluginProps
+		localPropsCopy.update({"devicePortFieldId_uiAddress":address})
+		dev.replacePluginPropsOnServer(localPropsCopy)
 
+	########################################
+	def validateDeviceFactoryUi(self, valuesDict, devIdList):
+		self.logger.info("validateDeviceFactoryUi() enter")
 		errorsDict = indigo.Dict()
-		
-		#TODO only validate serialPortUi for main device
-
 		self.validateSerialPortUi(valuesDict, errorsDict, u"devicePortFieldId")
 		if len(errorsDict) > 0:
 			# Some UI fields are not valid, return corrected fields and error messages (client
 			# will not let the dialog window close).
 			return (False, valuesDict, errorsDict)
 
-		# User choices look good, so return True (client will then close the dialog window).
-		return (True, valuesDict)
+		self.logger.debug(valuesDict)
+
+		#TODO validate 
+
+		return (True, valuesDict, errorsDict)
 
 	########################################
-	def closedDeviceConfigUi(self, valuesDict, userCancelled, typeId, devId):
-		self.logger.debug(u"closedDeviceConfigUi enter")
-		if userCancelled:
-			return
-
+	def closedDeviceFactoryUi(self, valuesDict, userCancelled, devIdList):
+		self.logger.info("closedDeviceFactoryUi() enter")
+		self.logger.debug(valuesDict)
 		if self.tempSerial is not None:
 			self.logger.info("Closing temporary serial handle")
 			self.tempSerial = None
 
 		if userCancelled:
-			self.logger.info("Device Config UI Cancelled")
+			self.logger.info("Factory UI Cancelled")
 			return
 
-		#TODO only create serial lock for main device
+		#A lot of the things I'm doing in validate() should really be here
+		mainDev = 0
+		tunerDev = 0
+		zone2Dev = 0
+		zone3Dev = 0
+		zone2Enabled = valuesDict.get("enableZone2", False)
+		zone3Enabled = valuesDict.get("enableZone3", False)
+		tunerEnabled = valuesDict.get("enableTuner", False)
 
-		#now that we're sure the device is actually being created,
-		#we can finish variable initialization
-		if self.serialLocks.get(devId) is None:
-			self.serialLocks[devId] = threading.Lock()
+		for devId in devIdList:
+			dev = indigo.devices[devId]
+			self.logger.debug("devIdList includes "+dev.deviceTypeId)
+			if dev.deviceTypeId == "main":
+				mainDev = dev
+#				self.logger.debug(mainDev)
+			elif dev.deviceTypeId == "tuner":
+				tunerDev = dev
+			elif dev.deviceTypeId == "zone2":
+				zone2Dev = dev
+			elif dev.deviceTypeId == "zone3":
+				zone3Dev = dev
+			else:
+				self.logger.error("Unrecognized device type ")
 
+		if self.serialLocks[mainDev.id] is None:
+			#new device
+			self.serialLocks[mainDev.id] = threading.Lock()
+			self.serialConns[mainDev.id] = None
+				
+		if mainDev.address != valuesDict["devicePortFieldId_uiAddress"]:
+			localPropsCopy = mainDev.pluginProps
+			localPropsCopy.update({"devicePortFieldId_uiAddress" : valuesDict["devicePortFieldId_uiAddress"],
+					"devicePortFieldId_serialConnType" : valuesDict["devicePortFieldId_serialConnType"],
+					"devicePortFieldId_serialPortLocal" : valuesDict["devicePortFieldId_serialPortLocal"],
+					"devicePortFieldId_serialPortNetRfc2217" : valuesDict["devicePortFieldId_serialPortNetRfc2217"],
+					"devicePortFieldId_serialPortNetSocket" : valuesDict["devicePortFieldId_serialPortNetSocket"]})
+			mainDev.replacePluginPropsOnServer(localPropsCopy)
+
+		if tunerDev == 0 and tunerEnabled:
+			self.logger.debug("Creating tuner device")
+			tunerDev = indigo.device.create(indigo.kProtocol.Plugin, deviceTypeId="tuner")
+			tunerDev.model = "Anthem AVM Processor"
+			tunerDev.subModel = "Tuner"
+			localPropsCopy = tunerDev.pluginProps
+			localPropsCopy.update({"devicePortFieldId_uiAddress" : valuesDict["devicePortFieldId_uiAddress"],
+					 "mainDevId" : mainDev.id})
+			tunerDev.replacePluginPropsOnServer(localPropsCopy)
+			tunerDev.replaceOnServer()
+		elif tunerDev != 0:
+			if not tunerEnabled:
+				self.logger.debug("Destroying tuner device")
+				indigo.device.delete(tunerDev)
+				tunerDev = 0
+			elif tunerDev.address != valuesDict["devicePortFieldId_uiAddress"]:
+				self.updateAddress(tunerDev, valuesDict["devicePortFieldId_uiAddress"])
+
+		if zone2Dev == 0 and zone2Enabled:
+			self.logger.debug("Creating zone2 device")
+			zone2Dev = indigo.device.create(indigo.kProtocol.Plugin, deviceTypeId="zone2")
+			zone2Dev.model = "Anthem AVM Processor"
+			zone2Dev.subModel = "Zone 2"
+			localPropsCopy = zone2Dev.pluginProps
+			localPropsCopy.update({"devicePortFieldId_uiAddress" : valuesDict["devicePortFieldId_uiAddress"],
+					 "mainDevId" : mainDev.id})
+			zone2Dev.replacePluginPropsOnServer(localPropsCopy)
+			zone2Dev.replaceOnServer()
+		elif zone2Dev != 0:
+			if not zone2Enabled:
+				self.logger.debug("Destroying zone2 device")
+				indigo.device.delete(zone2Dev)
+				zone2Dev = 0
+			elif zone2Dev.address != valuesDict["devicePortFieldId_uiAddress"]:
+				self.updateAddress(zone2Dev, valuesDict["devicePortFieldId_uiAddress"])
+			
+		if zone3Dev == 0 and zone3Enabled:
+			self.logger.debug("Creating zone3 device")
+			zone3Dev = indigo.device.create(indigo.kProtocol.Plugin, deviceTypeId="zone3")
+			zone3Dev.model = "Anthem AVM Processor"
+			zone3Dev.subModel = "Zone 3"
+			localPropsCopy = zone3Dev.pluginProps
+			localPropsCopy.update({"devicePortFieldId_uiAddress" : valuesDict["devicePortFieldId_uiAddress"],
+					 "mainDevId" : mainDev.id})
+			zone3Dev.replacePluginPropsOnServer(localPropsCopy)
+			zone3Dev.replaceOnServer()
+		elif zone3Dev != 0:
+			if not zone3Enabled:
+				self.logger.debug("Destroying zone3 device")
+				indigo.device.delete(zone3Dev)
+				zone3Dev = 0
+			elif zone3Dev.address != valuesDict["devicePortFieldId_uiAddress"]:
+				self.updateAddress(zone3Dev, valuesDict["devicePortFieldId_uiAddress"])
+
+		return
 	########################################
 	def getDayString(self, i):
 		dayStrings = ["NUL", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -161,15 +271,15 @@ class Plugin(indigo.PluginBase):
 		return dayStrings[day]
 
 	########################################
-	def _queryDevice(self, valuesDict=None, typeId="", devId=None):
+	def _queryDevice(self, valuesDict, devIdList):
 		self.logger.info("_queryDevice() enter")
 		mainDev = None
 		timeString = ""
 		dayString = ""
-#		for devId in devIdList:
-#			dev = indigo.devices[devId]
-#			if dev.deviceTypeId == "main":
-		mainDev = indigo.devices.get(devId)
+		for devId in devIdList:
+			dev = indigo.devices[devId]
+			if dev.deviceTypeId == "main":
+				mainDev = dev
 
 		if mainDev == None:
 			self.logger.error("Main device not found in _queryDevice")
@@ -195,7 +305,7 @@ class Plugin(indigo.PluginBase):
 		elif portType == "netSocket":
 			portName = valuesDict.get(u"devicePortFieldId_serialPortNetSocket", u"")
 		self.logger.info(u"opening serial port "+portName)
-		self.tempSerial = self.openSerial(mainDev.name, portName, 115200, timeout=self.defaultSerialTimeout)
+		self.tempSerial = self.openSerial(dev.name, portName, 115200, timeout=self.defaultSerialTimeout)
 		if self.tempSerial is not None:
 			valuesDict["queryError"] = ""
 			self.tempSerial.flushInput() # abundance of caution
@@ -229,7 +339,7 @@ class Plugin(indigo.PluginBase):
 		return valuesDict
 
 	########################################
-	def _syncTime(self, valuesDict, typeId="", devId=None):
+	def _syncTime(self, valuesDict, devIdList):
 		self.logger.info("_syncTime() enter")
 		#python days 0=Monday; AVM days 1=Sunday
 		dayCommands = ["STD2;", #monday
@@ -300,8 +410,8 @@ class Plugin(indigo.PluginBase):
 		return (False, valuesDict, errorsDict)
 
 	########################################
-	def actionControlDevice(self, action, dev):	
-		self.logger.debug(u"actionControlDevice enter")	
+	def actionControlDimmerRelay(self, action, dev):	
+		self.logger.debug(u"actionControlDimmerRelay enter")	
 		
 		if action.deviceAction == indigo.kDeviceAction.TurnOn: 
 			self.powerOn(dev)			 
@@ -319,7 +429,7 @@ class Plugin(indigo.PluginBase):
 
 	########################################
 	#General Action callback
-	def actionControlUniversal(self, action, dev):
+	def actionControlGeneral(self, action, dev):
 		self.logger.debug(u"actionControlGeneral enter")	
 		###### STATUS REQUEST ######
 		if action.deviceAction == indigo.kDeviceGeneralAction.RequestStatus:

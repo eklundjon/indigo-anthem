@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<Devices>
+	<DeviceFactory>
+		<Name>Anthem A/V Processor</Name>
+		<ButtonTitle>OK</ButtonTitle>
+		<ConfigUI>
+			<Field id="autoLabel" type="label" >
+        		<Label>Select the local serial port or remote serial server:</Label>
+        	</Field>
+			<Field type="menu" id="devicePortFieldId_serialConnType" defaultValue="local">
+				<Label>Connection Type:</Label>
+				<List>
+					<Option value="local">Local (Physical)</Option>
+					<Option value="netSocket">Network Socket</Option>
+					<Option value="netRfc2217">Network RFC-2217</Option>
+				</List>
+			</Field>
+			<Field id="devicePortFieldId_serialPortLocal" type="menu" 
+					visibleBindingId="devicePortFieldId_serialConnType" visibleBindingValue="local">
+				<Label>Serial Port:</Label>
+				<List class="indigo.serialPorts" filter="indigo.ignoreBluetooth" /> 
+			</Field>
+			<Field id="devicePortFieldId_serialPortNetRfc2217" type="textfield" defaultValue="rfc2217://"
+					visibleBindingId="devicePortFieldId_serialConnType" visibleBindingValue="netRfc2217">
+				<Label>RFC-2217 Address:</Label>
+            </Field>
+			<Field id="devicePortFieldId_serialPortNetSocket" type="textfield" defaultValue="socket://"
+					visibleBindingId="devicePortFieldId_serialConnType" visibleBindingValue="netSocket">
+				<Label>Socket Address:</Label>
+            </Field>
+			<Field id="devicePortFieldId_uiAddress" type="textfield" hidden="true">
+            </Field>
+
+			<Field type="button" id="checkPort">
+				<Title>Connect</Title>
+				<CallbackMethod>_queryDevice</CallbackMethod>
+			</Field>
+			
+			<Field id="queryError" type="label" > </Field>
+			<Field type="separator" id="simpleSeparator1" />
+			<Field type="checkbox" id="querySuccessful" default="false" hidden="true"> </Field>
+			
+			<Field type="checkbox" id="enableTuner">
+				<Label>Enable Tuner Device?</Label>
+			</Field>
+
+			<Field type="checkbox" id="enableZone2">
+				<Label>Enable Zone 2 Device?</Label>
+			</Field>
+
+			<Field type="checkbox" id="enableZone3">
+				<Label>Enable Zone 3 Device?</Label>
+			</Field>
+
+			<Field type="separator" id="simpleSeparator2" />
+			
+			<Field type="checkbox" id="enableExtendedInputs" default="false" hidden="true"> </Field>
+			
+			<Field id="firmwareString" type="textfield"	readonly="YES">
+				<Label>Device Version:</Label>
+            </Field>
+
+			<Field id="timeString" type="textfield"	readonly="YES">
+				<Label>Device Time:</Label>
+            </Field>
+
+			<Field type="button" id="syncTime">
+				<Title>Sync Time with Indigo</Title>
+				<CallbackMethod>_syncTime</CallbackMethod>
+			</Field>
+			
+			<Field id="Time24hr" type="textfield" readonly="YES" hidden="true"> </Field>
+
+			<Field id="input0Name" type="textfield">
+				<Label>CD Input Name:</Label>
+            </Field>
+			<Field id="input1Name" type="textfield">
+				<Label>2-Ch Bal Input Name:</Label>
+            </Field>
+			<Field id="input2Name" type="textfield">
+				<Label>6-Ch Input Name:</Label>
+            </Field>
+			<Field id="input3Name" type="textfield">
+				<Label>Tape Input Name:</Label>
+            </Field>
+			<Field id="input5Name" type="textfield">
+				<Label>DVD Input Name:</Label>
+            </Field>
+			<Field id="input6Name" type="textfield">
+				<Label>TV Input Name:</Label>
+            </Field>
+			<Field id="input7Name" type="textfield">
+				<Label>SAT Input Name:</Label>
+            </Field>
+			<Field id="input8Name" type="textfield">
+				<Label>VCR Input Name:</Label>
+            </Field>
+			<Field id="input9Name" type="textfield">
+				<Label>Aux Input Name:</Label>
+            </Field>
+			<Field id="inputdName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>DVD2 Input Name:</Label>
+            </Field>
+			<Field id="inputeName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>DVD3 Input Name:</Label>
+            </Field>
+			<Field id="inputfName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>DVD4 Input Name:</Label>
+            </Field>
+			<Field id="inputgName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>TV2 Input Name:</Label>
+            </Field>
+			<Field id="inputhName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>TV3 Input Name:</Label>
+            </Field>
+			<Field id="inputiName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>TV4 Input Name:</Label>
+            </Field>
+			<Field id="inputjName" type="textfield"	visibleBindingId="enableExtendedInputs" visibleBindingValue="True">
+				<Label>SAT2 Input Name:</Label>
+            </Field>
+
+
+		</ConfigUI>
+	</DeviceFactory>
+	<Device type="relay" id="main">
+		<Name>Main</Name>
+		<ConfigUI>
+			<Field type="label"><Title>Hello</Title></Field>
+		</ConfigUI>
+		<States>
+		</States>
+	</Device>
+
+	<Device type="custom" id="tuner">
+		<Name>Tuner</Name>
+		<ConfigUI>
+			<Field type="label"><Title>Hello</Title></Field>
+		</ConfigUI>
+		<States>
+		</States>
+	</Device>
+	<Device type="relay" id="zone2">
+		<Name>Zone 2</Name>
+		<ConfigUI>
+			<Field type="label"><Title>Hello</Title></Field>
+		</ConfigUI>
+		<States>
+		</States>
+	</Device>
+	<Device type="relay" id="zone3">
+		<Name>Zone 3</Name>
+		<ConfigUI>
+			<Field type="label"><Title>Hello</Title></Field>
+		</ConfigUI>
+		<States>
+		</States>
+	</Device>
+</Devices>
