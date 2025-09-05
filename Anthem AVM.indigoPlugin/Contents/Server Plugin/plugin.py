@@ -5,6 +5,7 @@ import serial
 import threading
 import os
 import time
+import AvmCommands
 from datetime import datetime
 from threading import Thread
 
@@ -17,18 +18,19 @@ class Plugin(indigo.PluginBase):
 		indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
 		self.debug = pluginPrefs.get("DebugFlag", False)
 		
-		self.serialLocks = {}   #do we still need these?
-		self.serialConns = {}   #pySerial connection handles for active devices
+		self.serialLocks = {}	#do we still need these?
+		self.serialConns = {}	#pySerial connection handles for active devices
 		self.serialThreads = {} #RX thread handles
-		self.exitFlags = {}     #thread exit flags
+		self.exitFlags = {}		#thread exit flags
 
-		self.tempSerial = None  #pySerial handle for factory UI
+		self.tempSerial = None	#pySerial handle for factory UI
 
+		#TODO serial init only for main devices
 		for dev in indigo.devices.iter("self"):
-			if dev.deviceTypeId == "main":
-				self.logger.info("Found "+dev.deviceTypeId)
-				self.serialLocks[dev.id] = threading.Lock()
-				self.exitFlags[dev.id] = False
+#			if dev.deviceTypeId == "main":
+			self.logger.info("Found "+dev.deviceTypeId)
+			self.serialLocks[dev.id] = threading.Lock()
+			self.exitFlags[dev.id] = False
 
 	########################################
 	def __del__(self):
@@ -55,64 +57,77 @@ class Plugin(indigo.PluginBase):
 			self.logger.info("Debug logging disabled")
 
 	########################################
+	def processResponse(self, dev, buf):
+		self.logger.debug("processResponse() enter")
+		response = AvmCommands.parseResponse(buf)
+		if response is not None:
+			self.logger.debug("parsed response: key is "+response.get("key")+"; data is "+response.get("value"))
+			dev.updateStateOnServer(response.get("key"), response.get("value"))
+			return
+
+		self.logger.warn(dev.name+": No match found for response \""+buf+"\"")
+
+	########################################
 	def commThread(self, dev):
-		self.logger.info("comm thread starting")
-		while self.serialConns[dev.id] is not None:
+		self.logger.info(dev.name+": Comm thread starting")
+		while self.serialConns.get(dev.id) is not None:
 			if self.exitFlags[dev.id]:
-				self.logger.info("Comm thread exiting as requested")
+				self.logger.info(dev.name+": Comm thread exiting as requested")
 				return
-				
+
 			buf = ""
 			buf = self.serialConns[dev.id].readline()
 			if len(buf) > 0:
 				buf = buf.rstrip()
-				self.logger.debug("Comm thread received "+buf)
-#				self.processResponse(buf)
+#				self.logger.debug(dev.name+": Comm thread received "+buf)
+				self.processResponse(dev, buf)
 
-		self.logger.warn("Comm thread exited for some unknown reason")
+		self.logger.warn(dev.name+": Comm thread exited for some unknown reason")
+
+	########################################
+	def getSerialPortUrl(self, arguments):
+		#we need to figure out the serial type to find the port path
+		portType = arguments.get(u"devicePortFieldId_serialConnType", u"")
+		portName = arguments.get(u"devicePortFieldId_serialPortLocal", u"")
+		if portType == "netRfc2217":
+			portName = arguments.get(u"devicePortFieldId_serialPortNetRfc2217", u"")
+		elif portType == "netSocket":
+			portName = arguments.get(u"devicePortFieldId_serialPortNetSocket", u"")
+
+		return portName
 
 	########################################
 	def deviceStartComm(self, dev, blockIfBusy=True):
-		if dev.deviceTypeId == "main":
-			self.logger.debug("deviceStartComm() enter for main device")
-
-			#we need to figure out the serial type to find the port path
-			portType = dev.pluginProps.get(u"devicePortFieldId_serialConnType", u"")
-			portName = dev.pluginProps.get(u"devicePortFieldId_serialPortLocal", u"")
-			if portType == "netRfc2217":
-				portName = dev.pluginProps.get(u"devicePortFieldId_serialPortNetRfc2217", u"")
-			elif portType == "netSocket":
-				portName = dev.pluginProps.get(u"devicePortFieldId_serialPortNetSocket", u"")
-			self.logger.info(u"opening serial port "+portName)
-			self.serialConns[dev.id] = self.openSerial(dev.name, portName, 115200,
-				timeout=self.defaultSerialTimeout)
-			if self.serialConns[dev.id] is None:
-				self.logger.error(u"unable to open serial port")
-				return False
-			else:
-				self.serialConns[dev.id].flushInput() # abundance of caution
-				self.serialConns[dev.id].flushOutput() # abundance of caution
-				self.serialThreads[dev.id] = Thread(target=self.commThread, args=(dev,))
-				self.serialThreads[dev.id].start()
+		self.logger.debug(dev.name+": deviceStartComm() enter")
+		#TODO remove this before release
+		dev.stateListOrDisplayStateIdChanged()
+		portName = self.getSerialPortUrl(dev.pluginProps)
+		self.logger.info(dev.name+": opening serial port "+portName)
+		self.serialConns[dev.id] = self.openSerial(dev.name, portName, 115200,
+			timeout=self.defaultSerialTimeout)
+		if self.serialConns[dev.id] is None:
+			self.logger.error(dev.name+": unable to open serial port")
+			return False
+		else:
+			self.serialConns[dev.id].flushInput() # abundance of caution
+			self.serialConns[dev.id].flushOutput() # abundance of caution
+			self.serialThreads[dev.id] = Thread(target=self.commThread, args=(dev,))
+			self.serialThreads[dev.id].start()
 
 		return
 
 	########################################
 	def deviceStopComm(self, dev, blockIfBusy=True):
-		if dev.deviceTypeId == "main":
-			self.logger.info("deviceStopComm() enter for main device")
-			self.exitFlags[dev.id] = True
+		self.logger.info(dev.name+": deviceStopComm() enter for main device")
+		self.exitFlags[dev.id] = True
+		try:
 			self.serialThreads[dev.id].join()
 			self.serialConns[dev.id].close()
-			self.exitFlags[dev.id] = False
-			self.serialConns[dev.id] = None
-
-		return
-#Traceback (most recent call last): on deleting device
-#  File "/Library/Application Support/Perceptive Automation/Indigo 7/IndigoPluginHost.app/Contents/PlugIns/plugin_base.py", line 1144, in deviceDeleted
-#  File "plugin.py", line 93, in deviceStopComm
-#KeyError: (1433517507,)
-
+		except:
+			pass
+		self.exitFlags[dev.id] = False
+		self.serialConns[dev.id] = None
+		self.serialThreads[dev.id] = None
 
 	########################################
 	def validateDeviceConfigUi(self, valuesDict, typeId, devId):
@@ -166,9 +181,8 @@ class Plugin(indigo.PluginBase):
 		mainDev = None
 		timeString = ""
 		dayString = ""
-#		for devId in devIdList:
-#			dev = indigo.devices[devId]
-#			if dev.deviceTypeId == "main":
+
+		#When we support other subdevices, finding the main is more complicated
 		mainDev = indigo.devices.get(devId)
 
 		if mainDev == None:
@@ -185,15 +199,10 @@ class Plugin(indigo.PluginBase):
 		if self.tempSerial is not None:
 			self.logger.error("Internal error: another device configuration is already in progress?")
 
-		# !! TODO !!  Figure out if the port is already open 
+		# !! TODO !!  Figure out if the port is already open... is easy
+		# how the hell do we intercept the responses if there's a RX thread running?
 
-		#we need to figure out the serial type to find the port path
-		portType = valuesDict.get(u"devicePortFieldId_serialConnType", u"")
-		portName = valuesDict.get(u"devicePortFieldId_serialPortLocal", u"")
-		if portType == "netRfc2217":
-			portName = valuesDict.get(u"devicePortFieldId_serialPortNetRfc2217", u"")
-		elif portType == "netSocket":
-			portName = valuesDict.get(u"devicePortFieldId_serialPortNetSocket", u"")
+		portName = self.getSerialPortUrl(valuesDict)
 		self.logger.info(u"opening serial port "+portName)
 		self.tempSerial = self.openSerial(mainDev.name, portName, 115200, timeout=self.defaultSerialTimeout)
 		if self.tempSerial is not None:
@@ -293,15 +302,15 @@ class Plugin(indigo.PluginBase):
 	########################################
 	def validateActionConfigUi(self, valuesDict, typeId, devId):
 		self.logger.debug(u"validateActionConfigUi enter")
-		errorsDict = indigo.Dict()
+		errorsDict = AvmCommands.validateCommand(valuesDict)
 
 		if len(errorsDict) == 0:
 			return (True, valuesDict)
 		return (False, valuesDict, errorsDict)
 
 	########################################
-	def actionControlDevice(self, action, dev):	
-		self.logger.debug(u"actionControlDevice enter")	
+	def actionControlDevice(self, action, dev): 
+		self.logger.debug(dev.name+": actionControlDevice() enter") 
 		
 		if action.deviceAction == indigo.kDeviceAction.TurnOn: 
 			self.powerOn(dev)			 
@@ -320,24 +329,24 @@ class Plugin(indigo.PluginBase):
 	########################################
 	#General Action callback
 	def actionControlUniversal(self, action, dev):
-		self.logger.debug(u"actionControlGeneral enter")	
+		self.logger.debug(dev.name+": actionControlUniversal() enter")	
 		###### STATUS REQUEST ######
 		if action.deviceAction == indigo.kDeviceGeneralAction.RequestStatus:
-			indigo.server.log(u"sent \"%s\" %s" % (dev.name, "status request"))
+			self.logger.debug(dev.name+": sent status request")
 			self.serialLocks[dev.id].acquire()
-			if self.checkSerial(dev) and self.isPowerOn(dev):
-				self.logger.debug(u"Serial is OK and device is ON: querying additional status info")
-				dev.updateStateOnServer("onOffState", True)
-#				dev.updateStateOnServer("onOffState", False)
-
+			if self.checkSerial(dev):
+				self.logger.debug(dev.name+": Serial is OK and device is ON: querying additional status info")
+				self.serialConns[dev.id].write("P1P?;P1S?;P4S?;P1VM?;P1VF?;P1VC?;P1VR?;P1VB?;P1VS?;P1VL?;")
+				self.serialConns[dev.id].write("P1LM?;P1LF?;P1LR?;P1LB?;P1BM?;P1BC?;P1BF?;P1BR?;P1BB?;")
+				self.serialConns[dev.id].write("P1TM?;P1TC?;P1TF?;P1TR?;P1TB?;P1TE?;")
 			self.serialLocks[dev.id].release()
 		else:
-			self.logger.info(u"EX-Link devices cannot beep and have no energy counters")
+			self.logger.info(u"AVM devices cannot beep and have no energy counters")
 
 	#######################################
 	# Begin Anthem-specific functionality #
 	#######################################
-    #should these be in a separate object perhaps?
+	#should these be in a separate object perhaps?
 	   
 	########################################
 	# Protocol constants
@@ -352,15 +361,16 @@ class Plugin(indigo.PluginBase):
 
 	######################
 	def checkSerial(self, dev):
-		id = dev.pluginProps.get("mainDevId", dev.id)
+		# When we support more devices, need to check the main dev ID here
+		id = dev.id
 			
-		if self.serialConns[id] is not None:
+		if self.serialConns.get(id) is not None:
 			junk = []
 			while self.serialConns[id].in_waiting:
 				junk += self.serialConns[id].read(1)
 			if len(junk) > 0:
 				length = str(len(junk))
-				self.logger.warn(u"Received "+length+" unexpected bytes: "+binascii.hexlify(bytearray(junk)))
+				self.logger.warn(dev.name+": Received "+length+" unexpected bytes: "+binascii.hexlify(bytearray(junk)))
 			return True
 
 		#we need to figure out the serial type to find the port path
@@ -371,27 +381,17 @@ class Plugin(indigo.PluginBase):
 			portName = workingDev.pluginProps.get(u"devicePortFieldId_serialPortNetRfc2217", u"")
 		elif portType == "netSocket":
 			portName = workingDev.pluginProps.get(u"devicePortFieldId_serialPortNetSocket", u"")
-		self.logger.info(u"opening serial port "+portName)
+		self.logger.info(dev.name+": opening serial port "+portName)
 		self.serialConns[id] = self.openSerial(dev.name, portName, 115200,
 			timeout=self.defaultSerialTimeout)
 		if self.serialConns[id] is None:
-			self.logger.error(u"unable to open serial port")
+			self.logger.error(dev.name+": unable to open serial port")
 			return False
 		else:
 			self.serialConns[id].flushInput() # abundance of caution
 			self.serialConns[id].flushOutput() # abundance of caution
 
 		return True
-
-	########################################
-	def waitForAck(self, dev):
-		if self.serialConns[dev.id] is not None:
-			reply = []
-			reply += self.serialConns[dev.id].read(3)
-			self.logger.debug(u"Command ack received: "+reply)
-			return True
-		self.logger.warn(u"Command not acknowledged by device")
-		return False
 
 	########################################
 	def sendQuery(self, dev, query):
@@ -413,16 +413,14 @@ class Plugin(indigo.PluginBase):
 	def powerOff(self, dev):
 		self.serialLocks[dev.id].acquire()
 		if self.checkSerial(dev):
-			if self.sendEnumCommand(dev, "PowerOff"):
-				dev.updateStateOnServer("onOffState", False)
+			self.sendCommand("onOffState", "Off")
 		self.serialLocks[dev.id].release()
 			
 	########################################
 	def powerOn(self, dev):
 		self.serialLocks[dev.id].acquire()
 		if self.checkSerial(dev):
-			if self.sendEnumCommand(dev, "PowerOn"):
-				dev.updateStateOnServer("onOffState", True)
+			self.sendCommand("onOffState", "On")
 		self.serialLocks[dev.id].release()
 	
 	########################################
@@ -433,18 +431,41 @@ class Plugin(indigo.PluginBase):
 		return
 
 	########################################
+	def updateMainCommandValues(self, valuesDict, typeId="", devId=None):
+		command = valuesDict.get("command")
+		if command is None:
+			indigo.server.log("AvmCommands.getValueDetails() no command to get details for")
+			return valuesDict
+
+		valuesDict["showPicker"] = False
+		valuesDict["showEntry"] = False 
+		valuesDict["textDescription"] = ""
+		valuesDict["textValue"] = ""
+
+		valuesDict["textDescription"] = AvmCommands.getStringDescription(command)
+		if valuesDict["textDescription"] is not None:
+			self.logger.debug("AvmCommands populating string details for "+command)
+			valuesDict["showEntry"] = True
+			valuesDict["textValue"] = AvmCommands.getStringDefault(command)
+		elif AvmCommands.hasValues(command):
+			self.logger.debug("AvmCommands found a value list for "+command)
+			valuesDict["showPicker"] = True
+		else:
+			self.logger.debug("AvmCommands no details for "+command)
+	
+		return valuesDict
+
+	########################################
 	def commandGenerator(self, filter="", valuesDict=None, typeId="", devId=None):
-		self.debugLog("dynamicMenuGenerator called")
+		self.debugLog("commandGenerator called")
 		self.logger.debug(valuesDict)
-		group = valuesDict.get("CommandGroup", "")
-		returnList = []
 
-		if group == "":
-			return returnList
+		return AvmCommands.getCommands()
 
-		self.logger.debug("Looking up values for "+group)
-		for command in self.enumCommands:
-			if command.startswith(group):
-				returnList.extend([(command, self.enumCommands[command]["name"])])
-				
-		return returnList
+	########################################
+	def valueGenerator(self, filter="", valuesDict=None, typeId="", devId=None):
+		self.debugLog("valueGenerator called")
+		self.logger.debug(valuesDict)
+
+		return AvmCommands.getValueList(valuesDict)
+		

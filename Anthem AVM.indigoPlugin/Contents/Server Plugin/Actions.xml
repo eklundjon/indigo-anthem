@@ -1,3 +1,37 @@
 <?xml version="1.0"?>
 <Actions>
+	<!-- SupportURL here is buggy in Indigo.  Put one in each action instead -->
+	<SupportURL>https://github.com/eklundjon/indigo-anthem/wiki/Actions</SupportURL>
+	<Action id="MainCommand" deviceFilter="self" uiPath="DeviceActions">
+		<Name>Main Command</Name>
+		<CallbackMethod>mainCommand</CallbackMethod>
+		<ConfigUI>
+			<Field id="command" type="menu" defaultValue="?">
+				<Label>Command:</Label>
+				<List class="self" filter="test" method="commandGenerator" dynamicReload="true" />
+				<CallbackMethod>updateMainCommandValues</CallbackMethod>
+			</Field>
+            <Field type="checkbox" 
+                id="showPicker" 
+                hidden="true"
+                defaultValue="false">
+            </Field>
+			<Field id="menuValue" type="menu" defaultValue="?" visibleBindingId="showPicker" visibleBindingValue="true">
+				<Label>Value:</Label>
+				<List class="self" filter="test" method="valueGenerator" dynamicReload="true" />
+				<CallbackMethod>doNothingMethod</CallbackMethod>
+			</Field>
+            <Field type="checkbox" 
+                id="showEntry" 
+                hidden="true"
+                defaultValue="false">
+            </Field>
+			<Field id="textValue" type="textfield" defaultValue="" visibleBindingId="showEntry" visibleBindingValue="true">
+				<Label>Value:</Label>
+			</Field>
+			<Field id="textDescription" type="textfield" defaultValue="" visibleBindingId="showEntry" visibleBindingValue="true" readonly="true">
+				<Label></Label>
+			</Field>
+		</ConfigUI>
+	</Action>
 </Actions>

@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <Devices>
 	<SupportURL>https://github.com/eklundjon/indigo-anthem/wiki/Devices</SupportURL>
-	<Device type="relay" id="AnthemMain">
-		<Name>Anthem Main Zone</Name>
+	<Device type="relay" id="Anthem3ZoneMain">
+		<Name>Anthem 3-Zone Processor (main)</Name>
 		<ConfigUI>
             <Field type="serialport" id="devicePortFieldId" />
 
@@ -34,27 +34,232 @@
 
 		</ConfigUI>
 		<States>
-			<State id="input">
-				<ValueType>
-					<List>
-						<Option value="TV">TV</Option>
-					</List>
-				</ValueType>
-				<TriggerLabel>Active Input Changed</TriggerLabel>
-				<TriggerLabelPrefix>Input Changed to</TriggerLabelPrefix>
-				<ControlPageLabel>Active Input</ControlPageLabel>
+			<State id="MasterVolume" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Master Volume</TriggerLabel>
+				<ControlPageLabel>Master Volume</ControlPageLabel>
 			</State>
-			<State id="volume">
-				<ValueType>Integer</ValueType>
-				<TriggerLabel>Current Volume</TriggerLabel>
-				<TriggerLabelPrefix>Volume Changed to</TriggerLabelPrefix>
-				<ControlPageLabel>Current Volume</ControlPageLabel>
-			</State>
-			<State id="mute">
-				<ValueType boolType="YesNo">Boolean</ValueType>
+			<State id="Mute" defaultvalue="Off">
+				<ValueType>Boolean</ValueType>
 				<TriggerLabel>Mute</TriggerLabel>
 				<ControlPageLabel>Mute</ControlPageLabel>
 			</State>
+			<State id="HeadphoneMute" defaultvalue="Off">
+				<ValueType>Boolean</ValueType>
+				<TriggerLabel>Headphone Mute</TriggerLabel>
+				<ControlPageLabel>Headphone Mute</ControlPageLabel>
+			</State>
+			<State id="Source" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Input</TriggerLabel>
+				<ControlPageLabel>Input</ControlPageLabel>
+			</State>
+			<State id="RecSource" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Record Source</TriggerLabel>
+				<ControlPageLabel>Record Source</ControlPageLabel>
+			</State>
+			<State id="HeadphoneVolume" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Headphone Volume</TriggerLabel>
+				<ControlPageLabel>Headphone Volume</ControlPageLabel>
+			</State>
+			<State id="MaxVolume" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Max Volume</TriggerLabel>
+				<ControlPageLabel>Max Volume</ControlPageLabel>
+			</State>
+			<State id="PowerOnVolume" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Power-On Volume</TriggerLabel>
+				<ControlPageLabel>Power-On Volume</ControlPageLabel>
+			</State>
+			<State id="VolumeFront" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Front Volume</TriggerLabel>
+				<ControlPageLabel>Front Volume</ControlPageLabel>
+			</State>
+			<State id="VolumeCenter" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Center Volume</TriggerLabel>
+				<ControlPageLabel>Center Volume</ControlPageLabel>
+			</State>
+			<State id="VolumeSurround" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Surround Volume</TriggerLabel>
+				<ControlPageLabel>Surround Volume</ControlPageLabel>
+			</State>
+			<State id="VolumeBack" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Back Volume</TriggerLabel>
+				<ControlPageLabel>Back Volume</ControlPageLabel>
+			</State>
+			<State id="VolumeSub" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Sub Volume</TriggerLabel>
+				<ControlPageLabel>Sub Volume</ControlPageLabel>
+			</State>
+			<State id="VolumeLFE" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>LFE Volume</TriggerLabel>
+				<ControlPageLabel>LFE Volume</ControlPageLabel>
+			</State>
+			<State id="MasterBalance" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Master Balance</TriggerLabel>
+				<ControlPageLabel>Master Balance</ControlPageLabel>
+			</State>
+			<State id="HeadphoneBalance" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Headphone Balance</TriggerLabel>
+				<ControlPageLabel>Headphone Balance</ControlPageLabel>
+			</State>
+			<State id="BalanceFront" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Balance Front</TriggerLabel>
+				<ControlPageLabel>Balance Front</ControlPageLabel>
+			</State>
+			<State id="BalanceBack" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Balance Back</TriggerLabel>
+				<ControlPageLabel>Balance Back</ControlPageLabel>
+			</State>
+			<State id="MasterBass" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Master Bass</TriggerLabel>
+				<ControlPageLabel>Master Bass</ControlPageLabel>
+			</State>
+			<State id="HeadphoneBass" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Headphone Bass</TriggerLabel>
+				<ControlPageLabel>Headphone Bass</ControlPageLabel>
+			</State>
+			<State id="BassFront" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Front Bass</TriggerLabel>
+				<ControlPageLabel>Front Bass</ControlPageLabel>
+			</State>
+			<State id="BassCenter" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Center Bass</TriggerLabel>
+				<ControlPageLabel>Center Bass</ControlPageLabel>
+			</State>
+			<State id="BassSurround" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Surround Bass</TriggerLabel>
+				<ControlPageLabel>Surround Bass</ControlPageLabel>
+			</State>
+			<State id="BassRear" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Rear Bass</TriggerLabel>
+				<ControlPageLabel>Rear Bass</ControlPageLabel>
+			</State>
+			<State id="MainTreble" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Main Treble</TriggerLabel>
+				<ControlPageLabel>Main Treble</ControlPageLabel>
+			</State>
+			<State id="HeadphoneTreble" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Headphone Treble</TriggerLabel>
+				<ControlPageLabel>Headphone Treble</ControlPageLabel>
+			</State>
+			<State id="TrebleFront" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Front Treble</TriggerLabel>
+				<ControlPageLabel>Front Treble</ControlPageLabel>
+			</State>
+			<State id="TrebleCenter" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Center Treble</TriggerLabel>
+				<ControlPageLabel>Center Treble</ControlPageLabel>
+			</State>
+			<State id="TrebleSurround" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Surround Treble</TriggerLabel>
+				<ControlPageLabel>Surround Treble</ControlPageLabel>
+			</State>
+			<State id="TrebleRear" defaultvalue="?">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Rear Treble</TriggerLabel>
+				<ControlPageLabel>Rear Treble</ControlPageLabel>
+			</State>
+			<State id="ToneBypass" defaultvalue="Off">
+				<ValueType>Boolean</ValueType>
+				<TriggerLabel>Tone Bypass</TriggerLabel>
+				<ControlPageLabel>Tone Bypass</ControlPageLabel>
+			</State>
+			<State id="Compression" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Compression</TriggerLabel>
+				<ControlPageLabel>Compression</ControlPageLabel>
+			</State>
+			<State id="DecoderStatus" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Decoder Status</TriggerLabel>
+				<ControlPageLabel>Decoder Status</ControlPageLabel>
+			</State>
+			<State id="AC3Status" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>AC-3 Status</TriggerLabel>
+				<ControlPageLabel>AC-3 Status</ControlPageLabel>
+			</State>
+			<State id="StereoInputFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Stereo Input Effect</TriggerLabel>
+				<ControlPageLabel>Stereo Input Effect</ControlPageLabel>
+			</State>
+			<State id="CurrentProcessingModeText" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Processing Mode</TriggerLabel>
+				<ControlPageLabel>Processing Mode</ControlPageLabel>
+			</State>
+			<State id="StereoInputTHX" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Stereo Input THX</TriggerLabel>
+				<ControlPageLabel>Stereo Input THX</ControlPageLabel>
+			</State>
+			<State id="DolbyStereoTHX" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Dolby Stereo THX</TriggerLabel>
+				<ControlPageLabel>Dolby Stereo THX</ControlPageLabel>
+			</State>
+			<State id="DolbyStereoFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Dolby Stereo Effect</TriggerLabel>
+				<ControlPageLabel>Dolby Stereo Effect</ControlPageLabel>
+			</State>
+			<State id="DolbyDigitalFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Dolby Digital Effect</TriggerLabel>
+				<ControlPageLabel>Dolby Digital Effect</ControlPageLabel>
+			</State>
+			<State id="SixZeroInputFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>6.0 Input Effect</TriggerLabel>
+				<ControlPageLabel>6.0 Input Effect</ControlPageLabel>
+			</State>
+			<State id="DolbyExFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>Dolby EX Effect</TriggerLabel>
+				<ControlPageLabel>Dolby EX Effect</ControlPageLabel>
+			</State>
+			<State id="DtsMatrixFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>DTS Matrix Effect</TriggerLabel>
+				<ControlPageLabel>DTS Matrix Effect</ControlPageLabel>
+			</State>
+			<State id="SevenOneInputTHX" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>7.1 Input Effect</TriggerLabel>
+				<ControlPageLabel>7.1 Input Effect</ControlPageLabel>
+			</State>
+			<State id="DtsInputFx" defaultvalue="?">
+				<ValueType>String</ValueType>
+				<TriggerLabel>DTS Input Effect</TriggerLabel>
+				<ControlPageLabel>DTS Input Effect</ControlPageLabel>
+			</State>
+
 		</States>
 	</Device>
 </Devices>

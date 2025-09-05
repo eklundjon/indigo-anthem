@@ -1,4 +1,4 @@
-indigo-exlink
+indigo-anthem
 =============
 
 This is a plugin for the [Indigo](http://www.indigodomo.com/) smart home server that integrates
